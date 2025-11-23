@@ -1,4 +1,3 @@
-// Navbar.jsx
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FiShoppingCart, FiMenu, FiX, FiSearch } from "react-icons/fi";
@@ -13,6 +12,7 @@ export default function Navbar({ cartCountProp }) {
   const [openMobile, setOpenMobile] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [auth, setAuth] = useState({ role: null, token: null });
+  const [newOrdersCount, setNewOrdersCount] = useState(0); // สำหรับ seller
 
   const menus = {
     buyer: [{ to: "/categories", label: "หมวดหมู่" }],
@@ -28,14 +28,42 @@ export default function Navbar({ cartCountProp }) {
     ],
   };
 
+  // โหลด token, role และ cart count
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
     setAuth({ token, role });
 
-    const cartFromStorage = JSON.parse(localStorage.getItem("cart") || "[]");
-    setCartCount(typeof cartCountProp === "number" ? cartCountProp : cartFromStorage.length);
+    const updateCartCount = () => {
+      const cartFromStorage = JSON.parse(localStorage.getItem("cart") || "[]");
+      setCartCount(typeof cartCountProp === "number" ? cartCountProp : cartFromStorage.length);
+    };
+
+    updateCartCount();
+    window.addEventListener("cartUpdated", updateCartCount);
+    return () => window.removeEventListener("cartUpdated", updateCartCount);
   }, [cartCountProp, location.pathname]);
+
+  // โหลดจำนวน order ใหม่สำหรับ seller
+  useEffect(() => {
+    const fetchNewOrdersCount = async () => {
+      if (auth.role === "seller" && auth.token) {
+        try {
+          const res = await fetch("http://localhost:3000/api/orders/seller/new", {
+            headers: { Authorization: `Bearer ${auth.token}` },
+          });
+          const data = await res.json();
+          setNewOrdersCount(data.count || 0);
+        } catch (err) {
+          console.error("ไม่สามารถโหลดจำนวนออร์เดอร์ใหม่", err);
+        }
+      }
+    };
+
+    fetchNewOrdersCount();
+    const interval = setInterval(fetchNewOrdersCount, 30000); // refresh ทุก 30 วินาที
+    return () => clearInterval(interval);
+  }, [auth]);
 
   const loggedInUserName = localStorage.getItem("loggedInUserName");
   const isBuyer = auth.role === "buyer";
@@ -103,7 +131,10 @@ export default function Navbar({ cartCountProp }) {
             <option value="อังกฤษ">อังกฤษ</option>
             <option value="ญี่ปุ่น">ญี่ปุ่น</option>
           </select>
-          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-1">
+          <button
+            type="submit"
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-1"
+          >
             <FiSearch /> ค้นหา
           </button>
         </form>
@@ -127,6 +158,23 @@ export default function Navbar({ cartCountProp }) {
                 {menu.label}
               </Link>
             ))}
+
+          {/* รายการสั่งซื้อ สำหรับ seller */}
+          {auth.role === "seller" && (
+            <Link
+              to="/seller/orders"
+              className="relative text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md"
+              onClick={() => setOpenMobile(false)}
+            >
+              รายการสั่งซื้อ
+              {newOrdersCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                  {newOrdersCount}
+                </span>
+              )}
+            </Link>
+          )}
+
           {isBuyer && (
             <Link to="/cart" className="relative text-gray-700 hover:text-blue-600">
               <FiShoppingCart className="text-xl" />
@@ -137,31 +185,36 @@ export default function Navbar({ cartCountProp }) {
               )}
             </Link>
           )}
+
           {auth.token && (
-            <div
+            <Link
+              to={auth.role === "seller" ? "/seller/profile" : "/myprofile"}
               className="cursor-pointer text-gray-700 hover:text-blue-600"
-              onClick={() => {
-                if (auth.role === "seller") navigate("/seller/profile");
-                else if (auth.role === "buyer") navigate("/profile");
-                else if (auth.role === "admin") navigate("/admin/profile");
-                setOpenMobile(false);
-              }}
+              onClick={() => setOpenMobile(false)}
             >
               {loggedInUserName || "โปรไฟล์"}
-            </div>
+            </Link>
           )}
+
           {!auth.token && (
             <>
               <Link to="/login" className="text-gray-700 hover:text-blue-600">
                 เข้าสู่ระบบ
               </Link>
-              <Link to="/register" className="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700">
+              <Link
+                to="/register"
+                className="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700"
+              >
                 สมัครสมาชิก
               </Link>
             </>
           )}
+
           {auth.token && (
-            <button className="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700" onClick={handleLogout}>
+            <button
+              className="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700"
+              onClick={handleLogout}
+            >
               ออกจากระบบ
             </button>
           )}
@@ -200,9 +253,41 @@ export default function Navbar({ cartCountProp }) {
               <option value="อังกฤษ">อังกฤษ</option>
               <option value="ญี่ปุ่น">ญี่ปุ่น</option>
             </select>
-            <button type="submit" className="bg-blue-600 text-white py-2 rounded-md mt-2 flex items-center justify-center gap-1 hover:bg-blue-700">
+            <button
+              type="submit"
+              className="bg-blue-600 text-white py-2 rounded-md mt-2 flex items-center justify-center gap-1 hover:bg-blue-700"
+            >
               <FiSearch /> ค้นหา
             </button>
+
+            {/* Mobile menu items */}
+            {auth.role &&
+              menus[auth.role]?.map((menu) => (
+                <Link
+                  key={menu.to}
+                  to={menu.to}
+                  className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md"
+                  onClick={() => setOpenMobile(false)}
+                >
+                  {menu.label}
+                </Link>
+              ))}
+
+            {/* รายการสั่งซื้อ Mobile */}
+            {auth.role === "seller" && (
+              <Link
+                to="/seller/orders"
+                className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md flex justify-between items-center"
+                onClick={() => setOpenMobile(false)}
+              >
+                รายการสั่งซื้อ
+                {newOrdersCount > 0 && (
+                  <span className="bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                    {newOrdersCount}
+                  </span>
+                )}
+              </Link>
+            )}
           </form>
         </div>
       )}

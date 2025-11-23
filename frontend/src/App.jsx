@@ -10,12 +10,12 @@ import AdminLayout from "./component/layout/AdminLayout";
 // ===== Buyer Pages =====
 import HomeBuyer from "./Page/Buyer/HomeBuyer";
 import BookDetail from "./Page/Buyer/BookDetail";
-import BuyerProfile from "./Page/Buyer/BuyerProfile";
 import Cart from "./Page/Buyer/Cart";
 import ProfileSeller from "./Page/Buyer/ProfileSeller";
 import Checkout from "./Page/Buyer/Checkout";
 import Categories from "./Page/Buyer/Categories";
 import OrderDetail from "./Page/Buyer/BookDetail"; // ใช้ BookDetail เป็นตัวอย่าง
+import ProfileBuyer from "./Page/Buyer/BuyerProfile"
 
 // ===== Seller Pages =====
 import SellerBooks from "./Page/Seller/SellerBooks";
@@ -87,11 +87,11 @@ function App() {
           <Route path="/buyer" element={<HomeBuyer />} />
           <Route path="/book/:id" element={<BookDetail />} />
           <Route path="/cart" element={<Cart />} />
-          <Route path="/profile" element={<BuyerProfile />} />
           <Route path="/seller/:id" element={<ProfileSeller />} />
           <Route path="/categories" element={<Categories />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/order/:orderId" element={<OrderDetail />} />
+          <Route path="/myprofile" element={<ProfileBuyer />} />
         </Route>
 
         {/* ================= Seller ================= */}

@@ -35,8 +35,7 @@ exports.createBook = async (req, res) => {
   try {
     const { title, author, price, categoryId, condition, shortDescription } = req.body;
     const images = req.files ? req.files.map(f => f.filename) : [];
-
-    let catId = categoryId && mongoose.isValidObjectId(categoryId) ? new mongoose.Types.ObjectId(categoryId) : undefined;
+    const catId = categoryId && mongoose.isValidObjectId(categoryId) ? new mongoose.Types.ObjectId(categoryId) : undefined;
 
     const book = await Book.create({
       title,
@@ -56,7 +55,7 @@ exports.createBook = async (req, res) => {
   }
 };
 
-// แก้ไขหนังสือ + เก็บรูปเดิม + เพิ่มหลายรูป
+// แก้ไขหนังสือ
 exports.updateBook = async (req, res) => {
   try {
     const book = await Book.findById(req.params.id);
@@ -72,17 +71,10 @@ exports.updateBook = async (req, res) => {
     if (condition) book.condition = condition;
     if (shortDescription) book.shortDescription = shortDescription;
 
-    // เก็บรูปเดิมที่ต้องการเก็บ
     let oldImages = [];
     if (keepImages) {
-      try {
-        oldImages = JSON.parse(keepImages); // keepImages เป็น array ของชื่อไฟล์
-      } catch (err) {
-        console.error("keepImages ไม่ถูกต้อง", err);
-      }
+      try { oldImages = JSON.parse(keepImages); } catch (err) { console.error(err); }
     }
-
-    // เพิ่มรูปใหม่ถ้ามี
     const newImages = req.files ? req.files.map(f => f.filename) : [];
     book.images = [...oldImages, ...newImages];
 

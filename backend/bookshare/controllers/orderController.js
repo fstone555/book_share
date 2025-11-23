@@ -1,97 +1,93 @@
-const Order = require('../models/Order');
-const Book = require('../models/Book');
+const Order = require("../models/Order");
+const Book = require("../models/Book");
 
-// สร้างคำสั่งซื้อ
+// ----------------------------
+// สำหรับผู้ซื้อ: ดูประวัติการสั่งซื้อ
+// ----------------------------
+exports.getBuyerOrders = async (req, res) => {
+  try {
+    const buyerId = req.user._id;
+    const orders = await Order.find({ userId: buyerId })
+      .populate("items.bookId", "title price images")
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json(orders);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "ไม่สามารถดึงประวัติการซื้อได้" });
+  }
+};
+
+// ----------------------------
+// สำหรับผู้ขาย: ดูรายการที่ขายได้
+// ----------------------------
+exports.getSellerOrders = async (req, res) => {
+  try {
+    const sellerId = req.user._id;
+    const orders = await Order.find({ "items.bookId": { $exists: true } })
+      .populate("items.bookId", "title userId")
+      .populate("userId", "name email")
+      .lean();
+
+    const sellerOrders = orders.map(order => {
+      const itemsForSeller = order.items.filter(item => item.bookId && item.bookId.userId.toString() === sellerId.toString());
+      return {
+        _id: order._id,
+        buyer: order.userId,
+        total: itemsForSeller.reduce((sum, i) => sum + i.price * i.quantity, 0),
+        items: itemsForSeller,
+        status: order.status,
+        createdAt: order.createdAt,
+      };
+    }).filter(o => o.items.length > 0);
+
+    res.json(sellerOrders);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "ไม่สามารถดึงประวัติการขายได้" });
+  }
+};
+
+// ----------------------------
+// สร้างคำสั่งซื้อใหม่
+// ----------------------------
 exports.createOrder = async (req, res) => {
   try {
-    const { name, address, paymentMethod, items } = req.body;
-    if (!items || items.length === 0) return res.status(400).json({ message: 'Cart is empty' });
+    const buyerId = req.user?._id;
+    if (!buyerId) return res.status(401).json({ message: "คุณต้องล็อกอิน" });
 
-    let total = 0;
-    const orderItems = await Promise.all(items.map(async i => {
-      const book = await Book.findById(i.bookId);
-      if (!book) throw new Error(`Book not found: ${i.bookId}`);
-      total += book.price * i.quantity;
-      return { bookId: book._id, quantity: i.quantity, price: book.price };
-    }));
+    const { name, address, phone, paymentMethod, items } = req.body;
 
+    if (!items || items.length === 0) {
+      return res.status(400).json({ message: "ไม่มีรายการสินค้า" });
+    }
+
+    // คำนวณราคารวม
+    const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+    // สร้างคำสั่งซื้อ
     const order = await Order.create({
-      userId: req.user._id,
+      userId: buyerId,
       name,
       address,
+      phone,
       paymentMethod,
-      items: orderItems,
-      total
+      items,
+      total,
+      status: "pending",
     });
 
+    // อัปเดตสถานะหนังสือเป็นขายแล้ว
+    await Promise.all(
+      items.map(item =>
+        Book.findByIdAndUpdate(item.bookId, { isSold: true })
+      )
+    );
+
     res.status(201).json(order);
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Create order error', error: err.message });
-  }
-};
-
-// ดึง order ของผู้ใช้
-exports.getUserOrders = async (req, res) => {
-  try {
-    const orders = await Order.find({ userId: req.user._id }).populate('items.bookId');
-    res.json(orders);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Get user orders error', error: err.message });
-  }
-};
-
-// ดึง order ทั้งหมด (admin)
-exports.getAllOrders = async (req, res) => {
-  try {
-    const orders = await Order.find().populate('userId', 'name email').populate('items.bookId');
-    res.json(orders);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Get all orders error', error: err.message });
-  }
-};
-
-// อัปเดต status (admin)
-exports.updateOrderStatus = async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id);
-    if (!order) return res.status(404).json({ message: 'Order not found' });
-
-    const { status } = req.body;
-    if (!['pending','paid','shipped','delivered'].includes(status))
-      return res.status(400).json({ message: 'Invalid status' });
-
-    order.status = status;
-    await order.save();
-    res.json(order);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Update order status error', error: err.message });
-  }
-};
-
-
-// ดึง order ทั้งหมดของ seller
-exports.getOrdersBySeller = async (req, res) => {
-  try {
-    const { sellerId } = req.query;
-    if (!sellerId) return res.status(400).json({ message: 'sellerId required' });
-
-    const orders = await Order.find({ 'items.bookId': { $exists: true } })
-      .populate('userId', 'name')
-      .populate('items.bookId');
-
-    // filter เฉพาะ item ของ seller นี้
-    const filteredOrders = orders.map(order => {
-      const items = order.items.filter(item => item.bookId.userId.toString() === sellerId);
-      return { ...order.toObject(), items };
-    }).filter(order => order.items.length > 0);
-
-    res.json(filteredOrders);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Cannot fetch orders', error: err.message });
+    console.error("สร้าง Order ผิดพลาด:", err);
+    res.status(500).json({ message: "ไม่สามารถสร้างคำสั่งซื้อได้", error: err.message });
   }
 };

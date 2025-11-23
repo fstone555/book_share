@@ -1,4 +1,3 @@
-// HomeBuyer.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -12,11 +11,13 @@ const HomeBuyer = () => {
   const category = searchParams.get("category") || "";
   const language = searchParams.get("language") || "";
 
+  // โหลดหนังสือจาก backend
   useEffect(() => {
     const fetchBooks = async () => {
       try {
         const res = await fetch("http://localhost:3000/api/books");
         const data = await res.json();
+
         const formatted = data.map((book) => ({
           ...book,
           images:
@@ -28,6 +29,7 @@ const HomeBuyer = () => {
                 )
               : [],
         }));
+
         setBooks(formatted);
       } catch (error) {
         console.error("Error loading books:", error);
@@ -36,6 +38,7 @@ const HomeBuyer = () => {
     fetchBooks();
   }, []);
 
+  // กรองหนังสือตาม query / category / language
   useEffect(() => {
     setFiltered(
       books.filter((b) =>
@@ -57,16 +60,24 @@ const HomeBuyer = () => {
           filtered.map((book) => (
             <div
               key={book._id}
-              className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all cursor-pointer p-4"
-              onClick={() => navigate(`/book/${book._id}`)}
+              className={`relative bg-white rounded-2xl shadow-md hover:shadow-xl transition-all cursor-pointer p-4 ${
+                book.isSold ? "opacity-60 cursor-not-allowed" : ""
+              }`}
+              onClick={() => !book.isSold && navigate(`/book/${book._id}`)}
             >
-              <div className="w-full aspect-[3/4] overflow-hidden rounded-xl shadow-sm">
+              <div className="w-full aspect-[3/4] overflow-hidden rounded-xl shadow-sm relative">
                 <img
                   src={book.images[0] || "/no-image.png"}
                   alt={book.title}
                   className="w-full h-full object-cover"
                 />
+                {book.isSold && (
+                  <span className="absolute inset-0 bg-black/50 text-white font-bold flex items-center justify-center text-lg rounded-xl">
+                    ขายแล้ว
+                  </span>
+                )}
               </div>
+
               <div className="mt-4">
                 <h3 className="text-base font-semibold line-clamp-2">{book.title}</h3>
                 <p className="text-red-500 font-bold mt-1">{book.price} บาท</p>

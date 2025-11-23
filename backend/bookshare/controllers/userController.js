@@ -71,34 +71,6 @@ exports.getProfile = async (req, res) => {
   }
 };
 
-// ---------------------------
-// Update Profile
-// ---------------------------
-exports.updateProfile = async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    if (name) user.name = name;
-    if (email) user.email = email;
-    if (password) user.password = password; // pre-save hook จะ hash ให้
-
-    if (req.file) {
-      if (user.avatar) {
-        const oldPath = path.join(__dirname, '..', user.avatar);
-        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-      }
-      user.avatar = req.file.path.replace(/\\/g, '/');
-    }
-
-    await user.save();
-    const { password: _, ...userData } = user.toObject();
-    res.json(userData);
-  } catch (err) {
-    res.status(500).json({ message: 'Update profile error', error: err.message });
-  }
-};
 
 // ---------------------------
 // Admin: Get all users
@@ -130,5 +102,41 @@ exports.resetPassword = async (req, res) => {
     res.json({ message: `Password for ${email} has been reset` });
   } catch (err) {
     res.status(500).json({ message: 'Reset password error', error: err.message });
+  }
+};
+
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, email, password, phone, address } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (password) user.password = password; // pre-save hook จะ hash ให้
+    if (phone) user.phone = phone;
+    if (address) user.address = address;
+
+    // อัปโหลด avatar
+    if (req.file) {
+      // ลบไฟล์เก่า
+      if (user.avatar) {
+        const oldPath = path.join(__dirname, '..', user.avatar);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      // เปลี่ยนชื่อไฟล์เป็น timestamp + originalname
+      const ext = path.extname(req.file.originalname);
+      const newFilename = `uploads/${Date.now()}-${req.file.originalname}`;
+      fs.renameSync(req.file.path, path.join(__dirname, '..', newFilename));
+      user.avatar = newFilename.replace(/\\/g, '/');
+    }
+
+    await user.save();
+    const { password: _, ...userData } = user.toObject();
+    res.json({ message: 'Profile updated', user: userData });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Update profile error', error: err.message });
   }
 };

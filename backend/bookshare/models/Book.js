@@ -1,4 +1,3 @@
-// models/Book.js
 const mongoose = require('mongoose');
 
 const bookSchema = new mongoose.Schema({
@@ -10,15 +9,14 @@ const bookSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   shortDescription: { type: String, default: '' },
   images: [String],
-  status: { type: String, default: 'active' }
+  status: { type: String, default: 'active' },
+  isSold: { type: Boolean, default: false }  // false = ยังขายได้, true = ขายแล้ว
 }, { timestamps: true });
 
-// Virtual field สำหรับภาพแรก
 bookSchema.virtual('image_url').get(function() {
   return this.images && this.images.length > 0 ? this.images[0] : null;
 });
 
-// ให้ virtual field แสดงเมื่อแปลงเป็น JSON / Object
 bookSchema.set('toJSON', { virtuals: true });
 bookSchema.set('toObject', { virtuals: true });
 
