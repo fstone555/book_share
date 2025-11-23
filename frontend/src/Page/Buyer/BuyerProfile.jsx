@@ -7,8 +7,8 @@ const ProfileBuyer = () => {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", phone: "", address: "" });
   const [avatar, setAvatar] = useState(null);
-  const [message, setMessage] = useState(""); // success
-  const [error, setError] = useState("");     // error
+  const [message, setMessage] = useState(""); 
+  const [error, setError] = useState("");    
   const token = localStorage.getItem("token");
 
   useEffect(() => {
@@ -32,18 +32,19 @@ const ProfileBuyer = () => {
   }, [token]);
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const res = await axios.get("http://localhost:3000/api/orders/buyer", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setOrders(res.data);
-      } catch (err) {
-        console.error("ไม่สามารถโหลดประวัติการสั่งซื้อ", err);
-      }
-    };
     fetchOrders();
   }, [token]);
+
+  const fetchOrders = async () => {
+    try {
+      const res = await axios.get("http://localhost:3000/api/orders/buyer", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setOrders(res.data);
+    } catch (err) {
+      console.error("ไม่สามารถโหลดประวัติการสั่งซื้อ", err);
+    }
+  };
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
   const handleAvatarChange = (e) => {
@@ -78,13 +79,28 @@ const ProfileBuyer = () => {
     }
   };
 
+  // ชำระเงินและเปลี่ยนสถานะเป็น paid
+  const handlePayOrder = async (orderId) => {
+    try {
+      await axios.patch(
+        `http://localhost:3000/api/orders/${orderId}/pay`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert("ชำระเงินสำเร็จ! สถานะ: รอผู้ขายจัดส่ง");
+      fetchOrders();
+    } catch (err) {
+      console.error(err);
+      alert("ชำระเงินไม่สำเร็จ");
+    }
+  };
+
   if (!user) return <p className="text-center mt-20 text-gray-500">Loading...</p>;
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       <h1 className="text-3xl font-bold text-gray-800">โปรไฟล์ของฉัน</h1>
 
-      {/* ข้อความแจ้งเตือน */}
       {message && <div className="bg-green-100 text-green-700 p-3 rounded">{message}</div>}
       {error && <div className="bg-red-100 text-red-700 p-3 rounded">{error}</div>}
 
@@ -127,50 +143,16 @@ const ProfileBuyer = () => {
             </button>
             <h2 className="text-2xl font-bold mb-4 text-gray-700">แก้ไขโปรไฟล์</h2>
             <div className="flex flex-col gap-3">
-              <input
-                type="text"
-                name="name"
-                placeholder="ชื่อ"
-                value={form.name}
-                onChange={handleChange}
-                className="border p-2 rounded focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="email"
-                name="email"
-                placeholder="อีเมล"
-                value={form.email}
-                onChange={handleChange}
-                className="border p-2 rounded focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="text"
-                name="phone"
-                placeholder="เบอร์โทร"
-                value={form.phone}
-                onChange={handleChange}
-                className="border p-2 rounded focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="text"
-                name="address"
-                placeholder="ที่อยู่"
-                value={form.address}
-                onChange={handleChange}
-                className="border p-2 rounded focus:ring-2 focus:ring-blue-500"
-              />
-              <input type="file" onChange={handleAvatarChange} className="mt-1" />
+              <input type="text" name="name" placeholder="ชื่อ" value={form.name} onChange={handleChange} className="border p-2 rounded focus:ring-2 focus:ring-blue-500"/>
+              <input type="email" name="email" placeholder="อีเมล" value={form.email} onChange={handleChange} className="border p-2 rounded focus:ring-2 focus:ring-blue-500"/>
+              <input type="text" name="phone" placeholder="เบอร์โทร" value={form.phone} onChange={handleChange} className="border p-2 rounded focus:ring-2 focus:ring-blue-500"/>
+              <input type="text" name="address" placeholder="ที่อยู่" value={form.address} onChange={handleChange} className="border p-2 rounded focus:ring-2 focus:ring-blue-500"/>
+              <input type="file" onChange={(e) => handleAvatarChange(e)} className="mt-1"/>
               <div className="flex gap-2 mt-2">
-                <button
-                  onClick={handleSaveProfile}
-                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex-1"
-                >
+                <button onClick={handleSaveProfile} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex-1">
                   บันทึก
                 </button>
-                <button
-                  onClick={() => setEditing(false)}
-                  className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 transition flex-1"
-                >
+                <button onClick={() => setEditing(false)} className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 transition flex-1">
                   ยกเลิก
                 </button>
               </div>
@@ -186,26 +168,18 @@ const ProfileBuyer = () => {
       ) : (
         <div className="space-y-6 mt-4">
           {orders.map((order) => {
-            const orderTotal = order.items.reduce(
-              (total, item) => total + item.price * item.quantity,
-              0
-            );
-
+            const orderTotal = order.items.reduce((total, item) => total + item.price * item.quantity, 0);
             return (
               <div key={order._id} className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition">
-                {/* Header ของ order */}
                 <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-700">Order ID: {order._id}</h3>
                     <p className="text-gray-500 text-sm">{new Date(order.createdAt).toLocaleString()}</p>
                   </div>
-                  <span
-                    className={`mt-2 md:mt-0 px-3 py-1 rounded-full text-sm font-semibold ${
-                      order.status === "paid"
-                        ? "bg-green-100 text-green-700"
-                        : order.status === "pending"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-red-100 text-red-700"
+                  <span className={`mt-2 md:mt-0 px-3 py-1 rounded-full text-sm font-semibold ${
+                      order.status === "paid" ? "bg-green-100 text-green-700" :
+                      order.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                      "bg-red-100 text-red-700"
                     }`}
                   >
                     {order.status.toUpperCase()}
@@ -213,58 +187,52 @@ const ProfileBuyer = () => {
                 </div>
 
                 {/* รายการหนังสือ */}
-                {/* รายการหนังสือ */}
-<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-  {order.items.map((item, idx) => {
-    const imgSrc =
-      item.bookId?.images?.[0] &&
-      !item.bookId.images[0].startsWith("http")
-        ? `http://localhost:3000/uploads/books/${item.bookId.images[0]}`
-        : item.bookId?.images?.[0] || "/no-image.png";
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {order.items.map((item, idx) => {
+                    const imgSrc = item.bookId?.images?.[0] && !item.bookId.images[0].startsWith("http")
+                      ? `http://localhost:3000/uploads/books/${item.bookId.images[0]}`
+                      : item.bookId?.images?.[0] || "/no-image.png";
 
-    return (
-      <div
-        key={idx}
-        className="relative bg-white border rounded-xl overflow-hidden shadow hover:shadow-lg transition transform hover:scale-105 cursor-pointer"
-      >
-        {/* ภาพหนังสือ */}
-        <img
-          src={imgSrc}
-          alt={item.bookId?.title || "No Image"}
-          className="w-full h-56 object-cover"
-        />
+                    return (
+                      <div key={idx} className="relative bg-white border rounded-xl overflow-hidden shadow hover:shadow-lg transition transform hover:scale-105 cursor-pointer">
+                        <img src={imgSrc} alt={item.bookId?.title || "No Image"} className="w-full h-56 object-cover"/>
+                        <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition flex flex-col justify-end p-4 text-white">
+                          {item.bookId?.isSold && <span className="bg-red-600 text-xs px-2 py-0.5 rounded mb-2 inline-block">ขายแล้ว</span>}
+                          <p className="font-bold text-sm">{item.bookId?.title}</p>
+                          {item.bookId?.author && <p className="text-xs mt-1">ผู้แต่ง: {item.bookId.author}</p>}
+                          <p className="text-xs mt-1">จำนวน: {item.quantity}</p>
+                          <p className="text-red-400 font-bold mt-1">{item.price} บาท</p>
+                        </div>
+                        <div className="p-3 md:hidden bg-gray-50">
+                          <p className="font-semibold text-gray-700 text-sm">{item.bookId?.title}</p>
+                          {item.bookId?.author && <p className="text-gray-500 text-xs mt-1">ผู้แต่ง: {item.bookId.author}</p>}
+                          <p className="text-gray-500 text-xs mt-1">จำนวน: {item.quantity}</p>
+                          <p className="text-red-600 font-bold mt-1">{item.price} บาท</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
 
-        {/* Overlay เมื่อ hover */}
-        <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition flex flex-col justify-end p-4 text-white">
-          {item.bookId?.isSold && (
-            <span className="bg-red-600 text-xs px-2 py-0.5 rounded mb-2 inline-block">
-              ขายแล้ว
-            </span>
-          )}
-          <p className="font-bold text-sm">{item.bookId?.title}</p>
-          {item.bookId?.author && (
-            <p className="text-xs mt-1">ผู้แต่ง: {item.bookId.author}</p>
-          )}
-          <p className="text-xs mt-1">จำนวน: {item.quantity}</p>
-          <p className="text-red-400 font-bold mt-1">{item.price} บาท</p>
-        </div>
+                {/* ปุ่มชำระเงิน */}
+                {order.status === "pending" && (
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      onClick={() => handlePayOrder(order._id)}
+                      className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
+                    >
+                      ชำระเงิน
+                    </button>
+                  </div>
+                )}
 
-        {/* ข้อมูลใต้ภาพสำหรับมือถือ */}
-        <div className="p-3 md:hidden bg-gray-50">
-          <p className="font-semibold text-gray-700 text-sm">{item.bookId?.title}</p>
-          {item.bookId?.author && (
-            <p className="text-gray-500 text-xs mt-1">ผู้แต่ง: {item.bookId.author}</p>
-          )}
-          <p className="text-gray-500 text-xs mt-1">จำนวน: {item.quantity}</p>
-          <p className="text-red-600 font-bold mt-1">{item.price} บาท</p>
-        </div>
-      </div>
-    );
-  })}
-</div>
+                {/* แสดง Tracking Number ถ้ามี */}
+                {order.trackingNumber && (
+                  <div className="mt-2 text-gray-700">
+                    <span className="font-semibold">Tracking Number:</span> {order.trackingNumber}
+                  </div>
+                )}
 
-
-                {/* ยอดรวม Order */}
                 <div className="mt-4 flex justify-end items-center space-x-4">
                   <span className="text-gray-600 font-semibold">รวมทั้งหมด:</span>
                   <span className="text-lg font-bold text-red-600">{orderTotal} บาท</span>

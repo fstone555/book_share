@@ -41,28 +41,39 @@ const Cart = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6 min-h-screen">
-      <h1 className="text-2xl font-bold mb-6">ตะกร้าสินค้า</h1>
+    <div className="max-w-6xl mx-auto p-6 min-h-screen">
+      <h1 className="text-3xl font-bold mb-8 text-gray-800">ตะกร้าสินค้า</h1>
 
       {cart.length === 0 ? (
-        <p className="text-gray-500">ไม่มีสินค้าในตะกร้า</p>
+        <p className="text-gray-500 text-center py-20">ไม่มีสินค้าในตะกร้า</p>
       ) : (
         <div className="flex flex-col gap-6">
           {cart.map((item, index) => (
-            <div key={item._id} className="flex items-center gap-4 bg-white p-4 rounded shadow">
+            <div key={item._id} className="flex flex-col sm:flex-row items-center sm:items-start gap-4 bg-white p-4 rounded-2xl shadow-lg hover:shadow-xl transition">
               <img
                 src={item.images?.[0] || "/no-image.png"}
                 alt={item.title}
-                className="w-20 h-28 object-cover rounded"
+                className="w-28 h-40 sm:w-32 sm:h-48 object-cover rounded-xl shadow"
               />
-              <div className="flex-1">
-                <h2 className="font-semibold">{item.title}</h2>
-                <p className="text-red-500 font-bold">{item.price} บาท</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <button className="px-2 py-1 bg-gray-200 rounded" onClick={() => updateQuantity(index, -1)}>-</button>
-                  <span>{item.quantity}</span>
-                  <button className="px-2 py-1 bg-gray-200 rounded" onClick={() => updateQuantity(index, 1)}>+</button>
-                  <button className="ml-4 text-red-500 hover:underline" onClick={() => removeItem(index)}>ลบ</button>
+              <div className="flex-1 flex flex-col gap-2">
+                <h2 className="font-semibold text-gray-800 text-lg">{item.title}</h2>
+                <p className="text-red-600 font-bold text-xl">{item.price} บาท</p>
+                <div className="flex items-center gap-3 mt-2">
+                  <button
+                    className="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+                    onClick={() => updateQuantity(index, -1)}
+                  >-</button>
+                  <span className="w-6 text-center">{item.quantity}</span>
+                  <button
+                    className="px-3 py-1 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+                    onClick={() => updateQuantity(index, 1)}
+                  >+</button>
+                  <button
+                    className="ml-4 text-red-500 hover:underline font-medium"
+                    onClick={() => removeItem(index)}
+                  >
+                    ลบ
+                  </button>
                 </div>
                 {item.isSold && (
                   <p className="mt-1 text-red-600 font-semibold">หนังสือเล่มนี้ขายแล้ว</p>
@@ -71,10 +82,10 @@ const Cart = () => {
             </div>
           ))}
 
-          <div className="bg-gray-50 p-4 rounded shadow flex justify-between items-center">
-            <p className="font-semibold text-lg">ราคารวม: {total} บาท</p>
+          <div className="bg-white p-5 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-center gap-4 mt-6">
+            <p className="font-semibold text-2xl text-gray-800">ราคารวม: {total} บาท</p>
             <button
-              className="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700"
+              className="bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 transition font-semibold text-lg shadow"
               onClick={goToCheckout}
             >
               ไปเช็คเอาท์

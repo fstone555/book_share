@@ -17,15 +17,17 @@ const SellerEdit = () => {
 
   const [oldImages, setOldImages] = useState([]);
   const [newImages, setNewImages] = useState([]);
+  const [categories, setCategories] = useState([]);
 
+  // ดึงข้อมูลหนังสือเดิม
   useEffect(() => {
     const token = localStorage.getItem("token");
 
     fetch(`http://localhost:3000/api/seller/books/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((res) => res.json())
-      .then((data) => {
+      .then(res => res.json())
+      .then(data => {
         setForm({
           title: data.title,
           author: data.author,
@@ -35,42 +37,40 @@ const SellerEdit = () => {
           shortDescription: data.shortDescription,
         });
 
-        const formatted = data.images?.map(
-          (img) => `http://localhost:3000/uploads/books/${img}`
-        );
-        setOldImages(formatted || []);
+        setOldImages(data.images || []);
       })
       .catch(console.error);
   }, [id]);
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  // ดึงหมวดหมู่
+  useEffect(() => {
+    fetch("http://localhost:3000/api/categories")
+      .then(res => res.json())
+      .then(setCategories)
+      .catch(console.error);
+  }, []);
 
-  const handleFileChange = (e) => {
+  const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleFileChange = e => {
     const files = Array.from(e.target.files);
-    setNewImages([...newImages, ...files]);
+    setNewImages(prev => [...prev, ...files]);
   };
 
-  const removeOldImage = (url) =>
-    setOldImages(oldImages.filter((img) => img !== url));
+  const removeOldImage = url => setOldImages(oldImages.filter(img => img !== url));
+  const removeNewImage = file => setNewImages(newImages.filter(f => f !== file));
 
-  const removeNewImage = (file) =>
-    setNewImages(newImages.filter((f) => f !== file));
-
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
     const token = localStorage.getItem("token");
 
     const fd = new FormData();
+    Object.keys(form).forEach(key => fd.append(key, form[key]));
 
-    Object.keys(form).forEach((key) => fd.append(key, form[key]));
-
-    const keepImages = oldImages.map((url) =>
-      url.replace("http://localhost:3000/uploads/books/", "")
-    );
+    const keepImages = oldImages.map(url => url.replace("http://localhost:3000/uploads/books/", ""));
     fd.append("keepImages", JSON.stringify(keepImages));
 
-    newImages.forEach((file) => fd.append("images", file));
+    newImages.forEach(file => fd.append("images", file));
 
     await fetch(`http://localhost:3000/api/seller/books/${id}`, {
       method: "PUT",
@@ -82,66 +82,38 @@ const SellerEdit = () => {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8 text-gray-800">
-        แก้ไขหนังสือ
-      </h1>
+    <div className="p-6 max-w-5xl mx-auto">
+      <h1 className="text-3xl font-bold mb-8 text-gray-800">แก้ไขหนังสือ</h1>
 
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white shadow-xl rounded-2xl p-8 space-y-6 border border-gray-100"
-      >
+      <form onSubmit={handleSubmit} className="bg-white shadow-xl rounded-2xl p-8 space-y-6 border border-gray-100">
         {/* INPUTS */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="font-medium text-gray-700">ชื่อหนังสือ</label>
-            <input
-              name="title"
-              value={form.title}
-              onChange={handleChange}
-              className="w-full mt-1 p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
-            />
+            <input name="title" value={form.title} onChange={handleChange} className="w-full mt-1 p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
 
           <div>
             <label className="font-medium text-gray-700">ผู้แต่ง</label>
-            <input
-              name="author"
-              value={form.author}
-              onChange={handleChange}
-              className="w-full mt-1 p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
-            />
+            <input name="author" value={form.author} onChange={handleChange} className="w-full mt-1 p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
 
           <div>
             <label className="font-medium text-gray-700">ราคา</label>
-            <input
-              name="price"
-              type="number"
-              value={form.price}
-              onChange={handleChange}
-              className="w-full mt-1 p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
-            />
+            <input type="number" name="price" value={form.price} onChange={handleChange} className="w-full mt-1 p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-400 transition"/>
           </div>
 
           <div>
-            <label className="font-medium text-gray-700">หมวดหมู่ (ID)</label>
-            <input
-              name="categoryId"
-              value={form.categoryId}
-              onChange={handleChange}
-              className="w-full mt-1 p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
-            />
+            <label className="font-medium text-gray-700">หมวดหมู่</label>
+            <select name="categoryId" value={form.categoryId} onChange={handleChange} className="w-full mt-1 p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-400 transition">
+              <option value="">เลือกหมวดหมู่</option>
+              {categories.map(cat => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
+            </select>
           </div>
 
           <div>
             <label className="font-medium text-gray-700">สภาพหนังสือ</label>
-            <select
-              name="condition"
-              value={form.condition}
-              onChange={handleChange}
-              className="w-full mt-1 p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
-            >
+            <select name="condition" value={form.condition} onChange={handleChange} className="w-full mt-1 p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-400 transition">
               <option value="">เลือกสภาพ</option>
               <option value="new">ใหม่</option>
               <option value="used">มือสอง</option>
@@ -152,13 +124,7 @@ const SellerEdit = () => {
         {/* DESCRIPTION */}
         <div>
           <label className="font-medium text-gray-700">รายละเอียด</label>
-          <textarea
-            name="shortDescription"
-            value={form.shortDescription}
-            onChange={handleChange}
-            rows={4}
-            className="w-full mt-1 p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
-          ></textarea>
+          <textarea name="shortDescription" value={form.shortDescription} onChange={handleChange} rows={4} className="w-full mt-1 p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-400 transition"/>
         </div>
 
         {/* OLD IMAGES */}
@@ -166,21 +132,9 @@ const SellerEdit = () => {
           <p className="font-semibold text-gray-700 mb-2">รูปเดิม</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {oldImages.map((url, i) => (
-              <div
-                key={i}
-                className="relative group rounded-xl overflow-hidden shadow-md"
-              >
-                <img
-                  src={url}
-                  className="w-full h-40 object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeOldImage(url)}
-                  className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded-lg text-xs opacity-0 group-hover:opacity-100 transition"
-                >
-                  ลบ
-                </button>
+              <div key={i} className="relative group rounded-xl overflow-hidden shadow-md">
+                <img src={url} className="w-full h-40 object-cover"/>
+                <button type="button" onClick={() => removeOldImage(url)} className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded-lg text-xs opacity-0 group-hover:opacity-100 transition">ลบ</button>
               </div>
             ))}
           </div>
@@ -189,43 +143,18 @@ const SellerEdit = () => {
         {/* NEW UPLOAD */}
         <div>
           <p className="font-semibold text-gray-700 mb-2">เพิ่มรูปใหม่</p>
-          <input
-            type="file"
-            multiple
-            onChange={handleFileChange}
-            className="cursor-pointer"
-          />
-
-          {/* PREVIEW */}
+          <input type="file" multiple onChange={handleFileChange} className="cursor-pointer"/>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-            {newImages.map((file, index) => (
-              <div
-                key={index}
-                className="relative group rounded-xl overflow-hidden shadow-md"
-              >
-                <img
-                  src={URL.createObjectURL(file)}
-                  className="w-full h-40 object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeNewImage(file)}
-                  className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-lg text-xs opacity-0 group-hover:opacity-100 transition"
-                >
-                  ลบ
-                </button>
+            {newImages.map((file, i) => (
+              <div key={i} className="relative group rounded-xl overflow-hidden shadow-md">
+                <img src={URL.createObjectURL(file)} className="w-full h-40 object-cover"/>
+                <button type="button" onClick={() => removeNewImage(file)} className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded-lg text-xs opacity-0 group-hover:opacity-100 transition">ลบ</button>
               </div>
             ))}
           </div>
         </div>
 
-        {/* BUTTON */}
-        <button
-          type="submit"
-          className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 transition active:scale-95"
-        >
-          บันทึกการแก้ไข
-        </button>
+        <button type="submit" className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold shadow-md hover:bg-blue-700 transition active:scale-95">บันทึกการแก้ไข</button>
       </form>
     </div>
   );

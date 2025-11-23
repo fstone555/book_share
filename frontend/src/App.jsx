@@ -31,6 +31,7 @@ import ManageUsers from "./Page/Admin/ManageUsers";
 import AdminReport from "./Page/Admin/AdminReports";
 import Approvals from "./Page/Admin/Approvals";
 import AdminProfile from "./Page/Admin/AdminProfile";
+import AdminBookDetails from "./Page/Admin/AdminBookDetails"
 
 // ===== Auth =====
 import Login from "./Page/Auth/Login";
@@ -127,6 +128,8 @@ function App() {
           <Route path="approvals" element={<Approvals />} />
           <Route path="report" element={<AdminReport />} />
           <Route path="profile" element={<AdminProfile />} />
+          <Route path="books/:id" element={<AdminBookDetails />} />
+
         </Route>
 
         {/* ================= Auth ================= */}
