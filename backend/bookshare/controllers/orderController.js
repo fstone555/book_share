@@ -1,5 +1,6 @@
 const Order = require("../models/Order");
 const Book = require("../models/Book");
+const User = require("../models/User"); // สำหรับ notifyUser
 
 // ----------------------------
 // สำหรับผู้ซื้อ: ดูประวัติการสั่งซื้อ
@@ -24,24 +25,37 @@ exports.getBuyerOrders = async (req, res) => {
 exports.getSellerOrders = async (req, res) => {
   try {
     const sellerId = req.user._id;
-    const orders = await Order.find({ "items.bookId": { $exists: true } })
-      .populate("items.bookId", "title userId")
-      .populate("userId", "name email")
+
+    const orders = await Order.find({ "items.sellerId": sellerId })
+      .populate("userId", "email") 
+      .populate("items.bookId", "title price images")
+      .sort({ createdAt: -1 })
       .lean();
 
     const sellerOrders = orders.map(order => {
-      const itemsForSeller = order.items.filter(item => item.bookId && item.bookId.userId.toString() === sellerId.toString());
+      const myItems = order.items.filter(
+        item => item.sellerId.toString() === sellerId.toString()
+      );
+
+      if (myItems.length === 0) return null;
+
       return {
         _id: order._id,
-        buyer: order.userId,
-        total: itemsForSeller.reduce((sum, i) => sum + i.price * i.quantity, 0),
-        items: itemsForSeller,
+        buyer: {
+          name: order.name,
+          address: order.address,
+          phone: order.phone,
+          email: order.userId?.email || ""
+        },
+        items: myItems,
+        total: myItems.reduce((sum, i) => sum + i.price * i.quantity, 0),
         status: order.status,
-        createdAt: order.createdAt,
+        createdAt: order.createdAt
       };
-    }).filter(o => o.items.length > 0);
+    }).filter(o => o !== null);
 
     res.json(sellerOrders);
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "ไม่สามารถดึงประวัติการขายได้" });
@@ -57,15 +71,10 @@ exports.createOrder = async (req, res) => {
     if (!buyerId) return res.status(401).json({ message: "คุณต้องล็อกอิน" });
 
     const { name, address, phone, paymentMethod, items } = req.body;
+    if (!items || items.length === 0) return res.status(400).json({ message: "ไม่มีรายการสินค้า" });
 
-    if (!items || items.length === 0) {
-      return res.status(400).json({ message: "ไม่มีรายการสินค้า" });
-    }
-
-    // คำนวณราคารวม
     const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
-    // สร้างคำสั่งซื้อ
     const order = await Order.create({
       userId: buyerId,
       name,
@@ -77,12 +86,9 @@ exports.createOrder = async (req, res) => {
       status: "pending",
     });
 
-    // อัปเดตสถานะหนังสือเป็นขายแล้ว
-    await Promise.all(
-      items.map(item =>
-        Book.findByIdAndUpdate(item.bookId, { isSold: true })
-      )
-    );
+    await Promise.all(items.map(item =>
+      Book.findByIdAndUpdate(item.bookId, { isSold: true })
+    ));
 
     res.status(201).json(order);
 
@@ -91,3 +97,67 @@ exports.createOrder = async (req, res) => {
     res.status(500).json({ message: "ไม่สามารถสร้างคำสั่งซื้อได้", error: err.message });
   }
 };
+
+// ----------------------------
+// จ่ายเงิน (จำลอง)
+// ----------------------------
+exports.payOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.orderId);
+    if (!order) return res.status(404).json({ message: "Order ไม่พบ" });
+
+    if (order.userId.toString() !== req.user._id.toString())
+      return res.status(403).json({ message: "ไม่อนุญาต" });
+
+    order.status = "paid";
+    await order.save();
+
+    res.json(order);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "ไม่สามารถอัปเดตสถานะได้" });
+  }
+};
+
+// ----------------------------
+// จัดส่งสินค้า
+// ----------------------------
+exports.shipOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { trackingNumber } = req.body;
+
+    if (!trackingNumber) return res.status(400).json({ message: "ต้องระบุ trackingNumber" });
+
+    const order = await Order.findById(orderId).populate("userId");
+    if (!order) return res.status(404).json({ message: "Order ไม่พบ" });
+
+    const sellerOwnsItem = order.items.some(
+      item => item.sellerId.toString() === req.user._id.toString()
+    );
+    if (!sellerOwnsItem) return res.status(403).json({ message: "คุณไม่มีสิทธิ์จัดส่งออเดอร์นี้" });
+
+    order.status = "shipped";
+    order.trackingNumber = trackingNumber;
+    await order.save();
+
+    // ส่งแจ้งเตือนผู้ซื้อ (ตัวอย่าง)
+    await notifyUser(order.userId._id, trackingNumber);
+
+    res.json({ message: "อัปเดตสถานะแล้ว", order });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "ไม่สามารถอัปเดตสถานะได้" });
+  }
+};
+
+// ----------------------------
+// ฟังก์ชันตัวอย่างแจ้งผู้ซื้อ
+// ----------------------------
+async function notifyUser(userId, trackingNumber) {
+  const user = await User.findById(userId);
+  if (!user) return;
+  console.log(`แจ้งผู้ซื้อ ${user.email} Tracking Number: ${trackingNumber}`);
+  // สามารถส่ง Email / Line Notify / Push Notification แทน console.log
+}

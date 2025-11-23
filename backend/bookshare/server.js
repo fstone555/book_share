@@ -14,6 +14,9 @@ const orderRoutes = require('./routes/orderRoutes');
 const sellerBookRoutes = require('./routes/sellerBookRoutes');
 const sellerRoutes = require("./routes/seller");
 
+const notificationRoutes = require('./routes/notificationRoutes');
+
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const UPLOAD_DIR = process.env.UPLOAD_DIR || 'uploads';
@@ -34,6 +37,10 @@ app.use('/api/orders', orderRoutes);
 // Seller routes
 app.use("/api/seller", sellerRoutes);
 app.use("/api/seller/books", sellerBookRoutes);
+app.use("/api/seller-books", sellerBookRoutes);
+app.use('/api/notifications', notificationRoutes);
+
+
 
 // สร้าง admin ถ้าไม่มี
 const createAdminIfNotExists = async () => {

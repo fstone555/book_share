@@ -17,9 +17,25 @@ exports.authMiddleware = async (req, res, next) => {
   }
 };
 
+/**
+ * authorizeRoles: ตรวจ role ไม่สนใจตัวพิมพ์ และ log debug
+ * ใช้ได้แบบ:
+ * router.patch("/some-route", authorizeRoles("admin"), controller)
+ */
 exports.authorizeRoles = (...roles) => (req, res, next) => {
-  if (!req.user || !roles.includes(req.user.role)) {
+  if (!req.user) {
+    console.log("No user in request");
+    return res.status(403).json({ message: 'Forbidden: No user' });
+  }
+
+  const userRole = req.user.role?.toLowerCase();
+  const allowedRoles = roles.map(r => r.toLowerCase());
+
+  console.log("User role:", userRole, "Allowed roles:", allowedRoles);
+
+  if (!allowedRoles.includes(userRole)) {
     return res.status(403).json({ message: 'Forbidden: Insufficient role' });
   }
+
   next();
 };

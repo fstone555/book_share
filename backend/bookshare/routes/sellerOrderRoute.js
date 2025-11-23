@@ -1,14 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const sellerOrderController = require("../controllers/sellerOrderController");
-const { authMiddleware, authorizeRoles } = require("../middleware/authMiddleware");
+const { getSellerOrders } = require("../controllers/orderController");
+const authMiddleware = require("../middleware/auth");
 
-router.use(authMiddleware, authorizeRoles("seller"));
-
-// ดึง order ของ seller
-router.get("/orders", sellerOrderController.getSellerOrders);
-
-// อัปเดตสถานะสินค้า
-router.patch("/orders/:orderId/items/:itemId", sellerOrderController.updateOrderItemStatus);
+// สำหรับผู้ขาย
+router.get("/seller", authMiddleware, getSellerOrders);
 
 module.exports = router;

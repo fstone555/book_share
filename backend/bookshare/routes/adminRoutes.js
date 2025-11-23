@@ -1,8 +1,23 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate, authorizeRoles } = require('../middleware/authMiddleware');
+const { authMiddleware, authorizeRoles } = require('../middleware/authMiddleware');
+const { updateBookStatus } = require('../controllers/bookController');
 const { updateRole } = require('../controllers/adminController');
 
-router.put('/users/:id/role', authenticate, authorizeRoles('admin'), updateRole);
+// อนุมัติ / ปฏิเสธหนังสือ
+router.patch(
+  '/seller-books/:id/status',
+  authMiddleware,
+  authorizeRoles('admin'), // ให้ admin เท่านั้น
+  updateBookStatus
+);
+
+// เปลี่ยน role ของผู้ใช้
+router.put(
+  '/users/:id/role',
+  authMiddleware,
+  authorizeRoles('admin'),
+  updateRole
+);
 
 module.exports = router;

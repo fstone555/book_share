@@ -4,12 +4,12 @@ const bookSchema = new mongoose.Schema({
   title: { type: String, required: true },
   author: { type: String, required: true },
   price: { type: Number, default: 0 },
-  condition: { type: String, enum: ['new', 'used'], default: 'used' },
+  condition: { type: String, enum: ['new', 'used', 'used-like-new'], default: 'used' },
   categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   shortDescription: { type: String, default: '' },
   images: [String],
-  status: { type: String, default: 'active' },
+  status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
   isSold: { type: Boolean, default: false }  // false = ยังขายได้, true = ขายแล้ว
 }, { timestamps: true });
 

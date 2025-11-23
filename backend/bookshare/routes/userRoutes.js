@@ -3,7 +3,6 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const { authMiddleware, authorizeRoles } = require('../middleware/authMiddleware');
 const multer = require('multer');
-const path = require('path');
 
 // Multer config เก็บไฟล์ใน uploads/ และตั้งชื่อไฟล์ไม่ซ้ำ
 const storage = multer.diskStorage({
@@ -19,7 +18,8 @@ const upload = multer({ storage });
 // Public routes
 // ---------------------------
 router.post('/register', userController.register);
-router.post('/login', userController.login);
+router.post('/login', userController.login);          // login ปกติ
+router.post('/google-login', userController.googleLogin); // login ด้วย Google
 router.post('/reset-password', userController.resetPassword);
 
 // ---------------------------
