@@ -13,39 +13,90 @@ const SellerBooks = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      setBooks(data);
+      const formatted = data.map((book) => ({
+        ...book,
+        images:
+          book.images?.length > 0
+            ? book.images.map((img) =>
+                img.startsWith("http")
+                  ? img
+                  : `http://localhost:3000/uploads/books/${img}`
+              )
+            : [],
+      }));
+      setBooks(formatted);
     } catch (err) {
       console.error(err);
     }
   };
 
-  useEffect(() => { fetchBooks(); }, []);
+  useEffect(() => {
+    fetchBooks();
+  }, []);
 
   const handleEdit = (id) => navigate(`/seller/books/edit/${id}`);
-  const handleAdd = () => navigate("/seller/books/add");
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("คุณต้องการลบหนังสือเล่มนี้หรือไม่?")) return;
+    const token = localStorage.getItem("token");
+    try {
+      await fetch(`http://localhost:3000/api/seller/books/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setBooks(books.filter((book) => book._id !== id));
+    } catch (err) {
+      console.error(err);
+      alert("ไม่สามารถลบหนังสือได้");
+    }
+  };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">หนังสือของฉัน</h1>
-      <button onClick={handleAdd} className="mb-4 bg-blue-600 text-white px-4 py-2 rounded-md">
-        เพิ่มหนังสือ
-      </button>
-      {books.length === 0 ? (
-        <p>คุณยังไม่มีหนังสือ</p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {books.map((book) => (
-            <div key={book._id} className="border p-4 rounded-md shadow-md">
-              <h3 className="font-semibold">{book.title}</h3>
-              <p>ราคา: {book.price} บาท</p>
-              <p>หมวด: {book.categoryId?.name || "-"}</p>
-              <button onClick={() => handleEdit(book._id)} className="mt-2 bg-green-500 text-white px-2 py-1 rounded">
-                แก้ไข
-              </button>
+    <div className="px-6 py-6">
+      <h1 className="text-2xl font-bold mb-6">หนังสือของฉัน</h1>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+        {books.length === 0 ? (
+          <p className="col-span-full text-center text-gray-500 text-lg">
+            คุณยังไม่มีหนังสือ
+          </p>
+        ) : (
+          books.map((book) => (
+            <div
+              key={book._id}
+              className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all cursor-pointer p-4 flex flex-col"
+            >
+              <div
+                className="w-full aspect-[3/4] overflow-hidden rounded-xl shadow-sm mb-4"
+                onClick={() => navigate(`/seller/books/edit/${book._id}`)}
+              >
+                <img
+                  src={book.images[0] || "/no-image.png"}
+                  alt={book.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-semibold line-clamp-2">{book.title}</h3>
+                <p className="text-red-500 font-bold mt-1">{book.price} บาท</p>
+              </div>
+              <div className="mt-2 flex gap-2">
+                <button
+                  className="flex-1 bg-green-500 text-white p-2 rounded hover:bg-green-600"
+                  onClick={() => handleEdit(book._id)}
+                >
+                  แก้ไข
+                </button>
+                <button
+                  className="flex-1 bg-red-500 text-white p-2 rounded hover:bg-red-600"
+                  onClick={() => handleDelete(book._id)}
+                >
+                  ลบ
+                </button>
+              </div>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
     </div>
   );
 };

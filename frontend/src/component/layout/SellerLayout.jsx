@@ -15,7 +15,7 @@ export default function SellerLayout() {
   return (
     <>
       <Navbar />
-      <main style={{ paddingTop: "70px" }}>
+      <main>
         <Outlet />
       </main>
     </>

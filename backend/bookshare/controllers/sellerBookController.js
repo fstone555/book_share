@@ -1,16 +1,12 @@
-// controllers/sellerBookController.js
 const Book = require("../models/Book");
 const mongoose = require("mongoose");
 
-// ----------------------------
 // ดึงหนังสือทั้งหมดของผู้ขาย
-// ----------------------------
 exports.getSellerBooks = async (req, res) => {
   try {
     const sellerId = req.user._id;
     const books = await Book.find({ userId: sellerId })
       .populate("categoryId", "name")
-      .populate("userId", "name email")
       .lean();
     res.json(books);
   } catch (err) {
@@ -19,9 +15,7 @@ exports.getSellerBooks = async (req, res) => {
   }
 };
 
-// ----------------------------
 // ดึงหนังสือ 1 เล่ม
-// ----------------------------
 exports.getBookById = async (req, res) => {
   try {
     const sellerId = req.user._id;
@@ -36,26 +30,19 @@ exports.getBookById = async (req, res) => {
   }
 };
 
-// ----------------------------
 // เพิ่มหนังสือใหม่
-// ----------------------------
 exports.createBook = async (req, res) => {
   try {
     const { title, author, price, categoryId, condition, shortDescription } = req.body;
     const images = req.files ? req.files.map(f => f.filename) : [];
 
-    // แปลง categoryId เป็น ObjectId ถ้าผ่านมา
-    let catId;
-    if (categoryId) {
-      catId = typeof categoryId === "object" ? categoryId._id : categoryId;
-      if (!mongoose.isValidObjectId(catId)) catId = undefined;
-    }
+    let catId = categoryId && mongoose.isValidObjectId(categoryId) ? new mongoose.Types.ObjectId(categoryId) : undefined;
 
     const book = await Book.create({
       title,
       author,
       price,
-      categoryId: catId ? new mongoose.Types.ObjectId(catId) : undefined,
+      categoryId: catId,
       condition,
       shortDescription,
       images,
@@ -69,35 +56,35 @@ exports.createBook = async (req, res) => {
   }
 };
 
-// ----------------------------
-// แก้ไขหนังสือ
-// ----------------------------
+// แก้ไขหนังสือ + เก็บรูปเดิม + เพิ่มหลายรูป
 exports.updateBook = async (req, res) => {
   try {
     const book = await Book.findById(req.params.id);
     if (!book) return res.status(404).json({ message: "ไม่พบหนังสือ" });
-    if (!book.userId.equals(req.user._id))
-      return res.status(403).json({ message: "ไม่มีสิทธิ์แก้ไข" });
+    if (!book.userId.equals(req.user._id)) return res.status(403).json({ message: "ไม่มีสิทธิ์แก้ไข" });
 
-    const { title, author, price, categoryId, condition, shortDescription } = req.body;
+    const { title, author, price, categoryId, condition, shortDescription, keepImages } = req.body;
 
     if (title) book.title = title;
     if (author) book.author = author;
     if (price) book.price = price;
-
-    if (categoryId) {
-      let catId = typeof categoryId === "object" ? categoryId._id : categoryId;
-      if (mongoose.isValidObjectId(catId)) {
-        book.categoryId = new mongoose.Types.ObjectId(catId);
-      }
-    }
-
+    if (categoryId && mongoose.isValidObjectId(categoryId)) book.categoryId = new mongoose.Types.ObjectId(categoryId);
     if (condition) book.condition = condition;
     if (shortDescription) book.shortDescription = shortDescription;
 
-    if (req.files && req.files.length > 0) {
-      book.images = req.files.map(f => f.filename);
+    // เก็บรูปเดิมที่ต้องการเก็บ
+    let oldImages = [];
+    if (keepImages) {
+      try {
+        oldImages = JSON.parse(keepImages); // keepImages เป็น array ของชื่อไฟล์
+      } catch (err) {
+        console.error("keepImages ไม่ถูกต้อง", err);
+      }
     }
+
+    // เพิ่มรูปใหม่ถ้ามี
+    const newImages = req.files ? req.files.map(f => f.filename) : [];
+    book.images = [...oldImages, ...newImages];
 
     await book.save();
     res.json(book);
@@ -107,15 +94,12 @@ exports.updateBook = async (req, res) => {
   }
 };
 
-// ----------------------------
 // ลบหนังสือ
-// ----------------------------
 exports.deleteBook = async (req, res) => {
   try {
     const book = await Book.findById(req.params.id);
     if (!book) return res.status(404).json({ message: "ไม่พบหนังสือ" });
-    if (!book.userId.equals(req.user._id))
-      return res.status(403).json({ message: "ไม่มีสิทธิ์ลบ" });
+    if (!book.userId.equals(req.user._id)) return res.status(403).json({ message: "ไม่มีสิทธิ์ลบ" });
 
     await book.remove();
     res.json({ message: "ลบหนังสือเรียบร้อยแล้ว" });
@@ -125,16 +109,13 @@ exports.deleteBook = async (req, res) => {
   }
 };
 
-// ----------------------------
-// อัปเดตสถานะหนังสือ (active/inactive)
-// ----------------------------
+// อัปเดตสถานะหนังสือ
 exports.updateBookStatus = async (req, res) => {
   try {
     const { status } = req.body;
     const book = await Book.findById(req.params.id);
     if (!book) return res.status(404).json({ message: "ไม่พบหนังสือ" });
-    if (!book.userId.equals(req.user._id))
-      return res.status(403).json({ message: "ไม่มีสิทธิ์แก้ไข" });
+    if (!book.userId.equals(req.user._id)) return res.status(403).json({ message: "ไม่มีสิทธิ์แก้ไข" });
 
     book.status = status;
     await book.save();
@@ -145,9 +126,7 @@ exports.updateBookStatus = async (req, res) => {
   }
 };
 
-// ----------------------------
 // ค้นหาหนังสือของผู้ขาย
-// ----------------------------
 exports.searchSellerBooks = async (req, res) => {
   try {
     const sellerId = req.user._id;
