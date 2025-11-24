@@ -1,33 +1,41 @@
-// src/Page/Auth/Login.jsx
+// src/Page/Auth/Auth.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { GoogleLogin } from "@react-oauth/google";
-import * as jwtDecode from "jwt-decode"; // แก้ import สำหรับ Vite
+import logo from "../../assets/LOGO.svg"
 
-export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+export default function Auth() {
+  const [tab, setTab] = useState("login"); // login หรือ register
   const navigate = useNavigate();
+
+  // Login state
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+
+  // Register state
+  const [regName, setRegName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regRole, setRegRole] = useState("buyer"); // default เป็นผู้ซื้อ
+  const [regError, setRegError] = useState("");
+  const [regSuccess, setRegSuccess] = useState("");
 
   const API_URL = import.meta.env.VITE_API_URL;
 
-  // ===== Login แบบ email/password =====
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
+    setLoginError("");
 
     try {
       const res = await fetch(`${API_URL}/api/users/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       });
 
       const data = await res.json();
-
       if (!res.ok) {
-        setError(data.message || "Login failed");
+        setLoginError(data.message || "Login failed");
         return;
       }
 
@@ -38,41 +46,36 @@ export default function Login() {
       redirectByRole(data.user.role);
     } catch (err) {
       console.error(err);
-      setError("Server error. Please try again later.");
+      setLoginError("Server error. Please try again later.");
     }
   };
 
-  // ===== Google Login =====
-  const handleGoogleLogin = async (credentialResponse) => {
-    try {
-      const idToken = credentialResponse.credential;
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setRegError("");
+    setRegSuccess("");
 
-      const res = await fetch(`${API_URL}/api/users/google-login`, {
+    try {
+      const res = await fetch(`${API_URL}/api/users/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
+        body: JSON.stringify({ name: regName, email: regEmail, password: regPassword, role: regRole }),
       });
 
       const data = await res.json();
-
       if (!res.ok) {
-        setError(data.message || "Google login failed");
+        setRegError(data.message || "Registration failed");
         return;
       }
 
-      localStorage.setItem("token", data.token);
-      const decoded = jwtDecode.default(data.token); // แก้ตรงนี้
-      localStorage.setItem("role", decoded.role);
-      localStorage.setItem("loggedInUserName", decoded.name || "Google User");
-
-      redirectByRole(decoded.role);
+      setRegSuccess("สมัครสมาชิกเรียบร้อย! กำลังไปหน้าเข้าสู่ระบบ...");
+      setTimeout(() => setTab("login"), 2000);
     } catch (err) {
       console.error(err);
-      setError("Google login failed");
+      setRegError("Server error. Please try again later.");
     }
   };
 
-  // ===== Redirect ตาม role =====
   const redirectByRole = (role) => {
     switch (role) {
       case "buyer":
@@ -90,61 +93,169 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">เข้าสู่ระบบ</h2>
+  <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="w-full max-w-sm space-y-8">
 
-        {error && (
-          <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">{error}</div>
-        )}
+      {/* Logo / Title */}
+      <div className="text-center">
+        <img
+  src={logo}
+  alt="MyBook Logo"
+  className="h-12 w-auto mx-auto"
+/>
+        <p className="text-gray-500 text-sm mt-2">
+          {tab === "login" ? "เข้าสู่ระบบบัญชีของคุณ" : "สร้างบัญชีใหม่ของคุณ"}
+        </p>
+      </div>
 
-        {/* ===== Form Login ===== */}
-        <form onSubmit={handleLogin} className="flex flex-col gap-4 mb-4">
-          <div className="flex flex-col">
-            <label className="mb-1 font-medium text-gray-700">Email</label>
+      {/* Card Box */}
+      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+
+        {/* Tabs */}
+        <div className="flex mb-6 border-b border-gray-200">
+          <button
+            onClick={() => setTab("login")}
+            className={`flex-1 pb-2 text-center font-medium text-sm transition ${
+              tab === "login"
+                ? "border-b-2 border-blue-600 text-blue-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            เข้าสู่ระบบ
+          </button>
+          <button
+            onClick={() => setTab("register")}
+            className={`flex-1 pb-2 text-center font-medium text-sm transition ${
+              tab === "register"
+                ? "border-b-2 border-green-600 text-green-600"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            สมัครสมาชิก
+          </button>
+        </div>
+
+        {/* Login Form */}
+        {tab === "login" && (
+          <form onSubmit={handleLogin} className="space-y-4">
+            {loginError && (
+              <div className="bg-red-50 text-red-600 text-sm p-2 rounded text-center">
+                {loginError}
+              </div>
+            )}
+
             <input
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500"
+              placeholder="อีเมล"
+              value={loginEmail}
+              onChange={(e) => setLoginEmail(e.target.value)}
               required
-              className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-          </div>
 
-          <div className="flex flex-col">
-            <label className="mb-1 font-medium text-gray-700">Password</label>
             <input
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500"
+              placeholder="รหัสผ่าน"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
               required
-              className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-          </div>
 
-          <button
-            type="submit"
-            className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition-colors"
-          >
-            Login
-          </button>
-        </form>
+            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-semibold">
+              เข้าสู่ระบบ
+            </button>
 
-        {/* ===== Divider ===== */}
-        <div className="flex items-center gap-2 my-4">
-          <hr className="flex-1 border-gray-300" />
-          <span className="text-gray-500 text-sm">หรือ</span>
-          <hr className="flex-1 border-gray-300" />
-        </div>
+            <p className="text-center text-sm text-blue-600 hover:underline cursor-pointer mt-2">
+              ลืมรหัสผ่าน?
+            </p>
+          </form>
+        )}
 
-        {/* ===== Google Login ===== */}
-        <div className="flex justify-center">
-          <GoogleLogin
-            onSuccess={handleGoogleLogin}
-            onError={() => setError("Google login failed")}
-          />
-        </div>
+        {/* Register Form */}
+        {tab === "register" && (
+          <form onSubmit={handleRegister} className="space-y-4">
+            {regError && (
+              <div className="bg-red-50 text-red-600 text-sm p-2 rounded text-center">
+                {regError}
+              </div>
+            )}
+
+            {regSuccess && (
+              <div className="bg-green-50 text-green-600 text-sm p-2 rounded text-center">
+                {regSuccess}
+              </div>
+            )}
+
+            <input
+              type="text"
+              placeholder="ชื่อผู้ใช้"
+              value={regName}
+              onChange={(e) => setRegName(e.target.value)}
+              required
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-green-500"
+            />
+
+            <input
+              type="email"
+              placeholder="อีเมล"
+              value={regEmail}
+              onChange={(e) => setRegEmail(e.target.value)}
+              required
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-green-500"
+            />
+
+            <input
+              type="password"
+              placeholder="รหัสผ่าน"
+              value={regPassword}
+              onChange={(e) => setRegPassword(e.target.value)}
+              required
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-green-500"
+            />
+
+            <select
+              value={regRole}
+              onChange={(e) => setRegRole(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-green-500"
+            >
+              <option value="buyer">ผู้ซื้อ</option>
+              <option value="seller">ผู้ขาย</option>
+            </select>
+
+            <button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg text-sm font-semibold">
+              สมัครสมาชิก
+            </button>
+          </form>
+        )}
       </div>
+
+      {/* Under Card */}
+      {tab === "login" && (
+        <div className="text-center text-sm text-gray-600">
+          ยังไม่มีบัญชีใช่ไหม?
+          <span
+            onClick={() => setTab("register")}
+            className="text-blue-600 ml-1 font-medium hover:underline cursor-pointer"
+          >
+            สมัครสมาชิก
+          </span>
+        </div>
+      )}
+
+      {tab === "register" && (
+        <div className="text-center text-sm text-gray-600">
+          มีบัญชีอยู่แล้ว?
+          <span
+            onClick={() => setTab("login")}
+            className="text-blue-600 ml-1 font-medium hover:underline cursor-pointer"
+          >
+            เข้าสู่ระบบ
+          </span>
+        </div>
+      )}
     </div>
-  );
+  </div>
+);
+
 }

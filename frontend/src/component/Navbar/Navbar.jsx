@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FiShoppingCart, FiSearch, FiBell } from "react-icons/fi";
 import { RiStoreLine } from "react-icons/ri";
+import logo from "../../assets/LOGO.svg"
 
 export default function Navbar({ cartCountProp }) {
   const navigate = useNavigate();
@@ -118,7 +119,13 @@ export default function Navbar({ cartCountProp }) {
   return (
     <header className="bg-white shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-        <Link to="/" className="text-xl font-bold text-blue-600">LOGO</Link>
+        <Link to="/">
+          <img
+            src={logo}
+            alt="Logo"
+            className="h-8 w-auto" // ปรับขนาด logo ตามต้องการ
+          />
+        </Link>
 
         {/* Search */}
         <form className="hidden md:flex items-center gap-2 flex-1 mx-4" onSubmit={handleSearch}>
@@ -166,9 +173,9 @@ export default function Navbar({ cartCountProp }) {
                 )}
               </button>
 
-{openNotif && (
-  <div
-    className="
+              {openNotif && (
+                <div
+                  className="
       absolute top-full mt-2 right-0 w-80
       bg-white rounded-xl shadow-lg
       border border-gray-200
@@ -176,42 +183,42 @@ export default function Navbar({ cartCountProp }) {
       scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-gray-100
       animate-[fadeIn_.2s_ease-out]
     "
-  >
-    {/* Header */}
-    <div className="sticky top-0 bg-white px-4 py-3 border-b flex justify-between items-center rounded-t-xl shadow-sm">
-      <h3 className="font-semibold text-gray-800 text-sm">การแจ้งเตือน</h3>
-      <button onClick={() => setOpenNotif(false)} className="text-gray-400 hover:text-gray-600 font-bold text-lg">×</button>
-    </div>
+                >
+                  {/* Header */}
+                  <div className="sticky top-0 bg-white px-4 py-3 border-b flex justify-between items-center rounded-t-xl shadow-sm">
+                    <h3 className="font-semibold text-gray-800 text-sm">การแจ้งเตือน</h3>
+                    <button onClick={() => setOpenNotif(false)} className="text-gray-400 hover:text-gray-600 font-bold text-lg">×</button>
+                  </div>
 
-    {/* Empty */}
-    {notifications.length === 0 ? (
-      <p className="p-4 text-center text-gray-500 text-sm">ไม่มีการแจ้งเตือน</p>
-    ) : (
-      <ul>
-        {notifications.map((n) => (
-          <li
-            key={n._id}
-            onClick={() => handleClickNotif(n)}
-            className={`
+                  {/* Empty */}
+                  {notifications.length === 0 ? (
+                    <p className="p-4 text-center text-gray-500 text-sm">ไม่มีการแจ้งเตือน</p>
+                  ) : (
+                    <ul>
+                      {notifications.map((n) => (
+                        <li
+                          key={n._id}
+                          onClick={() => handleClickNotif(n)}
+                          className={`
               flex items-start gap-3 px-4 py-3 cursor-pointer 
               transition-colors duration-150
               ${!n.read ? "bg-blue-50" : "hover:bg-gray-50"}
             `}
-          >
-            {/* Status Dot */}
-            <div className={`w-3 h-3 rounded-full mt-1 flex-shrink-0 ${n.read ? "bg-gray-300" : "bg-blue-500"}`}></div>
+                        >
+                          {/* Status Dot */}
+                          <div className={`w-3 h-3 rounded-full mt-1 flex-shrink-0 ${n.read ? "bg-gray-300" : "bg-blue-500"}`}></div>
 
-            {/* Message */}
-            <div className="flex-1">
-              <p className="text-gray-800 text-sm leading-snug">{n.message}</p>
-              <p className="text-xs text-gray-400 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
-    )}
-  </div>
-)}
+                          {/* Message */}
+                          <div className="flex-1">
+                            <p className="text-gray-800 text-sm leading-snug">{n.message}</p>
+                            <p className="text-xs text-gray-400 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
 
 
             </div>

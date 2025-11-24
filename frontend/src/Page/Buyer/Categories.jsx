@@ -20,28 +20,34 @@ const Categories = () => {
   }, []);
 
   const handleCategoryClick = (category) => {
-    // redirect ไปหน้า buyer พร้อม filter category
     navigate(`/buyer?category=${encodeURIComponent(category.name)}`);
   };
 
   return (
-    <div className="px-6 py-6">
-      <h1 className="text-2xl font-bold mb-6">หมวดหมู่หนังสือ</h1>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-        {categories.length === 0 ? (
-          <p className="col-span-full text-center text-gray-500">ไม่พบหมวดหมู่</p>
-        ) : (
-          categories.map((cat) => (
+    <div className="min-h-screen bg-gray-50 py-10 px-6">
+      <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-8 text-center">
+        หมวดหมู่หนังสือ
+      </h1>
+
+      {categories.length === 0 ? (
+        <p className="text-center text-gray-500 text-lg">ไม่พบหมวดหมู่</p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+          {categories.map((cat) => (
             <div
               key={cat._id}
-              className="cursor-pointer bg-white rounded-xl shadow-md hover:shadow-lg p-6 text-center transition-all"
+              className="cursor-pointer bg-white rounded-xl shadow-md hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col items-center justify-center"
               onClick={() => handleCategoryClick(cat)}
             >
-              <h2 className="text-lg font-semibold">{cat.name}</h2>
+              {/* ถ้ามีรูปหมวดหมู่ สามารถใส่ img ที่นี่ */}
+              {/* <img src={cat.image} alt={cat.name} className="h-16 w-16 mb-3" /> */}
+              <h2 className="text-lg md:text-xl font-semibold text-gray-800 text-center">
+                {cat.name}
+              </h2>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

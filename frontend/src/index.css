@@ -1,5 +1,5 @@
 @import "tailwindcss";
 
-*{
-  font-family: "Noto Sans Thai", sans-serif;
+* {
+  font-family: 'Inter', 'Poppins', 'Roboto', sans-serif;
 }
