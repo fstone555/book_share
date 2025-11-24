@@ -103,21 +103,33 @@ exports.createOrder = async (req, res) => {
 // ----------------------------
 exports.payOrder = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.orderId);
-    if (!order) return res.status(404).json({ message: "Order ไม่พบ" });
+    const { orderId } = req.params;
 
+    // หา order
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    // ตรวจ user
     if (order.userId.toString() !== req.user._id.toString())
-      return res.status(403).json({ message: "ไม่อนุญาต" });
+      return res.status(403).json({ message: 'Unauthorized: not your order' });
 
-    order.status = "paid";
+    // ตรวจ status
+    if (order.status !== 'pending')
+      return res.status(400).json({ message: `Cannot pay an order with status ${order.status}` });
+
+    // อัปเดตสถานะ
+    order.status = 'paid';
     await order.save();
 
-    res.json(order);
+    res.json({ message: 'Payment successful', order });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "ไม่สามารถอัปเดตสถานะได้" });
+    console.error('payOrder error:', err);
+    res.status(500).json({ message: 'Payment failed', error: err.message });
   }
 };
+
+
+
 
 // ----------------------------
 // จัดส่งสินค้า
@@ -161,3 +173,36 @@ async function notifyUser(userId, trackingNumber) {
   console.log(`แจ้งผู้ซื้อ ${user.email} Tracking Number: ${trackingNumber}`);
   // สามารถส่ง Email / Line Notify / Push Notification แทน console.log
 }
+
+
+// =======================
+// Buyer: ชำระเงิน
+// =======================
+exports.payOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    // หา order
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    // ตรวจสอบว่าเป็นผู้ซื้อของ order นี้
+    if (order.buyer.toString() !== req.user.id)
+      return res.status(403).json({ message: "Not authorized to pay this order" });
+
+    // ตรวจสอบสถานะเดิม
+    if (order.status !== "pending")
+      return res.status(400).json({ message: `Order status is ${order.status}, cannot pay` });
+
+    // อัปเดตสถานะเป็น paid
+    order.status = "paid";
+    order.paidAt = new Date();
+    await order.save();
+
+    res.json({ message: "Payment successful", order });
+  } catch (err) {
+    console.error("Pay order error:", err);
+    res.status(500).json({ message: "Pay order error", error: err.message });
+  }
+};
+

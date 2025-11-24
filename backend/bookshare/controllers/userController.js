@@ -3,54 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
-const { OAuth2Client } = require('google-auth-library');
 
-const client = new OAuth2Client(
-  "1010504574950-qs95p0bsb96ga96ahfjehco0khucgv19.apps.googleusercontent.com"
-);
-
-
-// ---------------------------
-// Google Login
-// ---------------------------
-exports.googleLogin = async (req, res) => {
-  try {
-    const { idToken } = req.body;
-    if (!idToken) return res.status(400).json({ message: 'idToken is required' });
-
-    const ticket = await client.verifyIdToken({
-      idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-
-    const payload = ticket.getPayload();
-    const { email, name, sub: googleId } = payload;
-
-    let user = await User.findOne({ email });
-
-    if (!user) {
-      // สร้างบัญชีใหม่ถ้าไม่มี
-      user = await User.create({
-        name,
-        email,
-        password: null, // ไม่ต้องใช้ password สำหรับ Google
-        googleId,
-        role: 'buyer', // กำหนด role default
-      });
-    }
-
-    const token = jwt.sign(
-      { id: user._id, role: user.role, name: user.name },
-      process.env.JWT_SECRET || 'change_this_secret',
-      { expiresIn: '7d' }
-    );
-
-    res.json({ message: 'Login with Google successful', token, user });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Google login error', error: err.message });
-  }
-};
 
 // ---------------------------
 // Register

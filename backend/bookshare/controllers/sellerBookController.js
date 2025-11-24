@@ -63,29 +63,6 @@ exports.createBook = async (req, res) => {
 
 
 
-// ดึงหนังสือ 1 เล่ม (สำหรับแสดงรายละเอียด / แก้ไข)
-exports.getBookById = async (req, res) => {
-  try {
-    const book = await Book.findById(req.params.id)
-      .populate("categoryId", "name")
-      .populate("userId", "name email")
-      .lean();
-
-    if (!book) return res.status(404).json({ message: "ไม่พบหนังสือ" });
-
-    // แปลง path รูปภาพเป็น URL
-    const host = req.protocol + "://" + req.get("host");
-    book.images = book.images.map(img =>
-      img.startsWith("http") ? img : `${host}/uploads/books/${img}`
-    );
-
-    res.json(book);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "ไม่สามารถดึงข้อมูลหนังสือได้" });
-  }
-};
-
 
 // แก้ไขหนังสือ
 exports.updateBook = async (req, res) => {
@@ -300,6 +277,29 @@ exports.updateBookStatus = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// ดึงหนังสือ 1 เล่ม สำหรับรายละเอียด
+exports.getBookById = async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id)
+      .populate("categoryId", "name")   // <-- ตรงนี้
+      .populate("userId", "name email")
+      .lean();
+
+    if (!book) return res.status(404).json({ message: "ไม่พบหนังสือ" });
+
+    // แปลง path รูปภาพเป็น URL
+    const host = req.protocol + "://" + req.get("host");
+    book.images = book.images.map(img =>
+      img.startsWith("http") ? img : `${host}/uploads/books/${img}`
+    );
+
+    res.json(book);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "ไม่สามารถดึงข้อมูลหนังสือได้", error: err.message });
   }
 };
 

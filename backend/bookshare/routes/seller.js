@@ -3,7 +3,16 @@ const router = express.Router();
 const sellerController = require("../controllers/sellerDashboardController");
 const { authMiddleware } = require("../middleware/authMiddleware");
 
+/**
+ * @swagger
+ * tags:
+ *   name: Seller
+ *   description: จัดการ dashboard และ profile ของผู้ขาย
+ */
+
+
 // Profile
+
 router.get("/profile", authMiddleware, sellerController.getProfile);
 router.put("/profile", authMiddleware, sellerController.updateProfile);
 

@@ -7,15 +7,18 @@ const bcrypt = require('bcrypt');
 const connectDB = require('./config/db');
 const User = require('./models/User');
 
+// Routes
 const userRoutes = require('./routes/userRoutes');
 const bookRoutes = require('./routes/bookRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const sellerBookRoutes = require('./routes/sellerBookRoutes');
 const sellerRoutes = require("./routes/seller");
-
 const notificationRoutes = require('./routes/notificationRoutes');
 
+
+// Swagger
+const setupSwagger = require('./swagger');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,8 +27,6 @@ const UPLOAD_DIR = process.env.UPLOAD_DIR || 'uploads';
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
-
-// ให้ React หรือ browser เรียกดูไฟล์รูปจาก /uploads
 app.use(`/${UPLOAD_DIR}`, express.static(path.join(__dirname, UPLOAD_DIR)));
 
 // Routes
@@ -33,14 +34,13 @@ app.use('/api/users', userRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/orders', orderRoutes);
-
-// Seller routes
 app.use("/api/seller", sellerRoutes);
 app.use("/api/seller/books", sellerBookRoutes);
 app.use("/api/seller-books", sellerBookRoutes);
 app.use('/api/notifications', notificationRoutes);
 
-
+// Setup Swagger **ก่อน start server**
+setupSwagger(app);
 
 // สร้าง admin ถ้าไม่มี
 const createAdminIfNotExists = async () => {
@@ -52,7 +52,7 @@ const createAdminIfNotExists = async () => {
       email: 'admin@bookshare.com',
       password: hashedPassword,
       role: 'admin',
-      avatar: null, // default ไม่มีรูป
+      avatar: null,
     });
     console.log('Admin user created: admin@bookshare.com / admin123');
   }

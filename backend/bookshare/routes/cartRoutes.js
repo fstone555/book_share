@@ -4,6 +4,31 @@ const router = express.Router();
 const Cart = require('../models/Cart'); // สมมติมี schema cart
 
 // ดึงตะกร้าของผู้ใช้
+/**
+ * @swagger
+ * /api/cart:
+ *   get:
+ *     summary: ดึงตะกร้าของผู้ใช้
+ *     tags: [Cart]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: รายการหนังสือในตะกร้า
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   bookId:
+ *                     type: string
+ *                   quantity:
+ *                     type: number
+ *       500:
+ *         description: Internal server error
+ */
 router.get('/', async (req, res) => {
   try {
     const cart = await Cart.findOne({ userId: req.user._id }).populate('items.bookId');
@@ -14,6 +39,31 @@ router.get('/', async (req, res) => {
 });
 
 // เพิ่มหนังสือ
+/**
+ * @swagger
+ * /api/cart/add:
+ *   post:
+ *     summary: เพิ่มหนังสือลงตะกร้า
+ *     tags: [Cart]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               bookId:
+ *                 type: string
+ *               quantity:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: รายการหนังสือในตะกร้าหลังเพิ่ม
+ *       500:
+ *         description: Internal server error
+ */
 router.post('/add', async (req, res) => {
   const { bookId, quantity } = req.body;
   try {
@@ -35,6 +85,29 @@ router.post('/add', async (req, res) => {
 });
 
 // ลบหนังสือ
+/**
+ * @swagger
+ * /api/cart/{bookId}:
+ *   delete:
+ *     summary: ลบหนังสือออกจากตะกร้า
+ *     tags: [Cart]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: bookId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID ของหนังสือ
+ *     responses:
+ *       200:
+ *         description: รายการหนังสือในตะกร้าหลังลบ
+ *       404:
+ *         description: ตะกร้าไม่พบ
+ *       500:
+ *         description: Internal server error
+ */
 router.delete('/:bookId', async (req, res) => {
   try {
     let cart = await Cart.findOne({ userId: req.user._id });

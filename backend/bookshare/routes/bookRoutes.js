@@ -16,8 +16,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// สร้างหนังสือ
-router.post('/', authMiddleware, upload.array('images'), bookController.create);
 
 // ดึงหนังสือทั้งหมด (ต้องอยู่ก่อน /:id)
 router.get('/all', bookController.listAll);
@@ -28,11 +26,6 @@ router.get('/', bookController.list);
 // ดึงหนังสือเดียว
 router.get('/:id', bookController.get);
 
-// อัปเดตหนังสือ
-router.put('/:id', authMiddleware, upload.array('images'), bookController.update);
-
-// ลบหนังสือ
-router.delete('/:id', authMiddleware, bookController.remove);
 
 // ดึงของ seller เอง
 router.get('/seller', authMiddleware, sellerBookController.getSellerBooks);

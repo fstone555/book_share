@@ -11,13 +11,3 @@ router.patch(
   authorizeRoles('admin'), // ให้ admin เท่านั้น
   updateBookStatus
 );
-
-// เปลี่ยน role ของผู้ใช้
-router.put(
-  '/users/:id/role',
-  authMiddleware,
-  authorizeRoles('admin'),
-  updateRole
-);
-
-module.exports = router;
